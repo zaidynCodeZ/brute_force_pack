@@ -32,28 +32,27 @@ pub mod generator {
     #[derive(Clone, Copy)]
     pub struct Word {
         word: [u8; MAX_LENGTH],
-        alphabet: &'static [u8],
         length: usize,
     }
 
     impl Word {
-        pub fn new(alphabet: &'static [u8], length: usize) -> Self {
-            let word = [alphabet[0]; MAX_LENGTH];
-            Word{ word, alphabet, length }
+        pub fn new(start: u8, length: usize) -> Self {
+            let word = [start; MAX_LENGTH];
+            Word{ word, length }
         }
 
         pub fn as_str<'a>(&'a self) -> &'a str {
             return str::from_utf8(&self.word[..self.length]).expect("You done fucked up");
         }
 
-        pub fn set(&mut self, index: usize, value: usize) {
-            self.word[index] = self.alphabet[value];
+        pub fn set(&mut self, index: usize, value: u8) {
+            self.word[index] = value;
         }
     }
 
     pub struct Generator {
         length: usize,
-        letters: usize,
+        alphabet: &'static [u8],
         odometer: [usize; MAX_LENGTH],
         word: Word,
         consumed: bool,
@@ -62,10 +61,9 @@ pub mod generator {
     impl Generator {
         pub fn new(alphabet: Alphabet, length: usize) -> Self {
             let alphabet = alphabet.get_alphabet();
-            let word = Word::new(alphabet, length);
-            let letters = alphabet.len();
+            let word = Word::new(alphabet[0], length);
             let odometer = [0; MAX_LENGTH];
-            Generator { length, letters, odometer, word, consumed: false }
+            Generator { length, alphabet, odometer, word, consumed: false }
         }
     }
 
@@ -78,9 +76,9 @@ pub mod generator {
             } else {
                 let mut idx: usize = 0;
                 self.odometer[idx] += 1;
-                while idx < self.length && self.odometer[idx] >= self.letters {
+                while idx < self.length && self.odometer[idx] >= self.alphabet.len() {
                     self.odometer[idx] = 0;
-                    self.word.set(idx, self.odometer[idx]);
+                    self.word.set(idx, self.alphabet[self.odometer[idx]]);
                     self.odometer[idx + 1] += 1;
                     idx += 1;
                 }
@@ -88,7 +86,7 @@ pub mod generator {
                     self.consumed = true;
                     return None;
                 } 
-                self.word.set(idx, self.odometer[idx]);
+                self.word.set(idx, self.alphabet[self.odometer[idx]]);
                 return Some(self.word);
             }
             
