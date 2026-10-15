@@ -42,7 +42,11 @@ pub mod generator {
         }
 
         pub fn as_str<'a>(&'a self) -> &'a str {
-            return str::from_utf8(&self.word[..self.length]).expect("You done fucked up");
+            str::from_utf8(&self.word[..self.length]).expect("You done fucked up")
+        }
+
+        pub fn as_bytes(&self) -> &[u8] {
+            &self.word[..self.length]
         }
 
         pub fn set(&mut self, index: usize, value: u8) {
@@ -53,8 +57,9 @@ pub mod generator {
     pub struct Generator {
         length: usize,
         alphabet: &'static [u8],
-        odometer: [usize; MAX_LENGTH],
+        odometer: [u8; MAX_LENGTH],
         word: Word,
+        initiated: bool,
         consumed: bool,
     }
 
@@ -63,7 +68,14 @@ pub mod generator {
             let alphabet = alphabet.get_alphabet();
             let word = Word::new(alphabet[0], length);
             let odometer = [0; MAX_LENGTH];
-            Generator { length, alphabet, odometer, word, consumed: false }
+            Generator { 
+                length, 
+                alphabet, 
+                odometer, 
+                word, 
+                initiated: false, 
+                consumed: false 
+            }
         }
     }
 
@@ -71,46 +83,36 @@ pub mod generator {
         type Item = Word;
 
         fn next(&mut self) -> Option<Self::Item> {
+            if !self.initiated {
+                self.initiated = true;
+                return Some(self.word);
+            }
+
             if self.consumed {
                 return None;
             } else {
+                if self.odometer[0] as usize + 1 < self.alphabet.len() {
+                    self.odometer[0] += 1;
+                    self.word.set(0, self.alphabet[self.odometer[0] as usize]);
+                    return Some(self.word);
+                }
+
                 let mut idx: usize = 0;
                 self.odometer[idx] += 1;
-                while idx < self.length && self.odometer[idx] >= self.alphabet.len() {
+                while idx < self.length - 1 && self.odometer[idx] as usize >= self.alphabet.len() {
                     self.odometer[idx] = 0;
-                    self.word.set(idx, self.alphabet[self.odometer[idx]]);
-                    self.odometer[idx + 1] += 1;
+                    self.word.set(idx, self.alphabet[self.odometer[idx] as usize]);
                     idx += 1;
+                    self.odometer[idx] += 1;  
                 }
-                if idx == self.length {
+                if idx >= self.length {
                     self.consumed = true;
                     return None;
                 } 
-                self.word.set(idx, self.alphabet[self.odometer[idx]]);
-                return Some(self.word);
+                self.word.set(idx, self.alphabet[self.odometer[idx] as usize]);
+                Some(self.word)
             }
             
-        }
-    }
-
-    #[cfg(test)]
-    mod test {
-        use super::*;
-        use std::time::Instant;
-
-        #[test]
-        fn speed_test() {
-            let target = "doope";
-            let alphabet = Alphabet::Standard;
-            let generator = Generator::new(alphabet, target.len());
-            let start = Instant::now();
-            for i in generator {
-                if i.as_str() == target {
-                    println!("Elapsed time: {:?}", start.elapsed());
-                    return;
-                }
-            }
-            panic!();
         }
     }
 }
