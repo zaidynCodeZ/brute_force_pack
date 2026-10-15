@@ -41,14 +41,17 @@ pub mod generator {
             Word{ word, length }
         }
 
+        #[inline(always)]
         pub fn as_str<'a>(&'a self) -> &'a str {
             str::from_utf8(&self.word[..self.length]).expect("You done fucked up")
         }
 
+        #[inline(always)]
         pub fn as_bytes(&self) -> &[u8] {
             &self.word[..self.length]
         }
-
+        
+        #[inline(always)]
         pub fn set(&mut self, index: usize, value: u8) {
             self.word[index] = value;
         }
