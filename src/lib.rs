@@ -30,7 +30,7 @@ pub mod generator {
         }
     }
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     pub struct Word {
         word: [u8; MAX_LENGTH],
         length: usize,
@@ -81,6 +81,33 @@ pub mod generator {
                 consumed: false 
             }
         }
+
+        pub fn next_batch(&mut self, buffer: &mut [Word]) {
+            let len = buffer.len();
+            for i in 0..len {
+                self.word.set(0, self.alphabet[i]);
+                buffer[i] = self.word;
+                self.odometer[0] += 1;
+            }
+            self.carry();
+        }
+
+        #[inline(always)]
+        fn carry(&mut self) {
+            let mut idx: usize = 0;
+            let alpha_len = self.alphabet.len();
+            while idx < self.length - 1 && self.odometer[idx] as usize >= alpha_len {
+                self.odometer[idx] = 0;
+                self.word.set(idx, self.alphabet[0usize]);
+                idx += 1;
+                self.odometer[idx] += 1;  
+            }
+            if idx >= self.length {
+                self.consumed = true;
+                return;
+            } 
+            self.word.set(idx, self.alphabet[self.odometer[idx] as usize]);
+        }
     }
 
     impl Iterator for Generator {
@@ -119,6 +146,29 @@ pub mod generator {
             
         }
     }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[test]
+        fn test_batch_gen() {
+            let mut batch = [Word::new(0,2); 26];
+            let target1 = ["aa", "ba", "ca", "da", "ea", "fa", "ga", "ha", "ia", "ja", "ka", "la", "ma", "na", "oa", "pa", "qa", "ra", "sa", "ta", "ua", "va", "wa", "xa", "ya", "za"];
+            let target2 = ["ab", "bb", "cb", "db", "eb", "fb", "gb", "hb", "ib", "jb", "kb", "lb", "mb", "nb", "ob", "pb", "qb", "rb", "sb", "tb", "ub", "vb", "wb", "xb", "yb", "zb"];
+            let mut generator = Generator::new(Alphabet::LowerCaseLetters, 2);
+
+            generator.next_batch(&mut batch);
+            for i in 0..26 {
+                assert_eq!(batch[i].as_str(), target1[i]);
+            }
+
+            generator.next_batch(&mut batch);
+            for i in 0..26 {
+                assert_eq!(batch[i].as_str(), target2[i]);
+            }
+        }
+    }
 }
 
 pub mod verifier {
@@ -147,7 +197,7 @@ pub mod verifier {
 
 
     #[cfg(test)]
-    mod tests {
+    mod test {
         use super::*;
         use hex_literal::hex;
 
