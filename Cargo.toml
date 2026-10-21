@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 sha2 = "0.10"
 hex-literal = "1.1.0"
+rayon = "1.12.0"
