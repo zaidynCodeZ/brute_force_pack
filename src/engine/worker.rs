@@ -9,7 +9,6 @@ pub struct Worker <'a, A: Alphabet<N>, const N: usize, T: Verifier> {
     verifier: &'a T,
     generator: Generator<A, N>,
     batches: usize,
-    length: usize,
 }
 
 impl<'a, A: Alphabet<N>, const N: usize, T: Verifier> Worker<'a, A, N, T> {
@@ -19,18 +18,16 @@ impl<'a, A: Alphabet<N>, const N: usize, T: Verifier> Worker<'a, A, N, T> {
             verifier,
             generator,
             batches,
-            length,
         }
     }
 
-    pub fn run(&mut self) -> Option<String>{
-        let mut batch = [generator::Word::new(0, self.length); N];
+    pub fn run(&mut self) -> Option<u64>{
+        let mut batch = [0u64; N];
         for _ in 0..self.batches {
             self.generator.next_batch(&mut batch);
             for i in batch.iter() {
-                if self.verifier.verify(&i.as_bytes()[..self.length]) {
-                    let output = i.as_str().to_string();
-                    return Some(output);
+                if self.verifier.verify(*i) {
+                    return Some(*i);
                 }
             }
         }
